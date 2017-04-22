@@ -1,0 +1,22 @@
+.tile {
+	height:60px;
+	width:60px;
+	background-color:tan;
+}
+.tile.start {
+	background-color:royalblue;
+}
+.tile.cliff {
+	background-color:red;
+}
+.tile.goal {
+	background-color:green;
+}
+
+.agent {
+	width:50px;
+	height:50px;
+	background-color:blueviolet;
+	position: absolute;
+	z-index:10;
+}
