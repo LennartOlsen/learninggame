@@ -182,16 +182,16 @@ class State {
 	}
 
 	getMaxQvalue(){
-		this.actions = this.actions.sort(function(a,b){return a.qvalue - b.qvalue})
+		this.actions = this.actions.sort(function(a,b){return b.qvalue - a.qvalue})
 		return this.actions[1].qvalue
 	}
 	getBestAction(){
-		this.actions = this.actions.sort(function(a,b){return a.qvalue - b.qvalue})
+		this.actions = this.actions.sort(function(a,b){return b.qvalue - a.qvalue})
 
 		/** Random selection between the two best */
 		var possibleActions = new Array()
-		possibleActions.push(this.actions[1])
-		var maxVal = this.actions[1].qvalue
+		possibleActions.push(this.actions[0])
+		var maxVal = this.actions[0].qvalue
 		for(var i = 1; i < this.actions.length; i++){
 			if(maxVal > this.actions[i].qvalue){
 				break;
