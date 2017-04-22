@@ -14,6 +14,7 @@ Vue.component('agent', {
 /** CONSTANTS */
 var alpha = 0.1;
 var gamma = 0.9;
+var maxIterationsBeforeReset = 1000;
 
 /** HELPERS */
 function guid() {
@@ -50,17 +51,24 @@ class Agent {
 	}
 	setTile(trainer, t){
 		if(trainer != undefined){
+			trainer.totalIterations += 1
+			if(trainerSettings.maxIterationsBeforeReset < trainer.iterations){
+				this.reset();
+				return;
+			}
+
+			trainer.iterations += 1
+
 			if(t.type == 'cliff'){
-				t = this.board.getStartTile()
-				trainer.updateState(t)
 				trainer.cliffs += 1
+				this.reset();
+				return;
 			}
 			if(t.type == 'goal'){
-				t = this.board.getStartTile()
-				trainer.updateState(t)
 				trainer.goals += 1
+				this.reset();
+				return;
 			}
-			trainer.iterations += 1
 		}
 		this.tile = t
 	}
@@ -92,6 +100,12 @@ class Agent {
 			top: this.tile.row * 60 + 'px',
 			left: this.tile.col * 8.33 + '%'
 		}
+	}
+	reset(){
+		trainer.iterations = 0
+		var t = this.board.getStartTile()
+		trainer.updateState(t)
+		this.tile = t
 	}
 }
 
@@ -131,6 +145,12 @@ class Board {
 				}
 			}
 		}
+	}
+	isStartTile(tile){
+		if(tile != undefined && tile.type == 'start'){
+			return true;
+		}
+		return false;
 	}
 }
 
@@ -210,7 +230,7 @@ class Action {
 
 /** TRAINER CLASS */
 class QLearning {
-	constructor(agent, board){
+	constructor(agent, board, settings){
 		this.board = board
 		this.agent = agent
 		this.currentTile = agent.tile
@@ -221,6 +241,8 @@ class QLearning {
 		this.iterations = 0
 		this.goals = 0
 		this.cliffs = 0
+		this.totalIterations = 0
+		this.settings = settings
 	}
 
 	constructStates(tiles){
@@ -235,6 +257,7 @@ class QLearning {
 	}
 
 	selectState(){
+		this.currentState = this.getState(agent.tile)
 		/**
 		 * From this state we select an action
 		 */
@@ -256,7 +279,7 @@ class QLearning {
 		 * a* All possible actions
 		 */
 		/** Q(state(T), action(T)) += alpha[reward(T+1) + gamma * max ( Q(state(T+1), a*) ) - Q(state(T), action(T)) ] */
-		var qvalue = alpha * ( statePlusOne.reward + gamma * statePlusOne.getMaxQvalue() -  actionPlusOne.qvalue )
+		var qvalue = this.settings.alpha * ( statePlusOne.reward + this.settings.gamma * statePlusOne.getMaxQvalue() -  actionPlusOne.qvalue )
 		
 		/**
 		 * Update the qvalue of the current action
@@ -267,6 +290,7 @@ class QLearning {
 		 * Move agent to next state
 		 */
 		 this.agent.setTile(this, actionPlusOne.tile)
+		 this.previousState = this.currentState
 		 this.currentState = statePlusOne
 		
 	}
@@ -281,8 +305,8 @@ class QLearning {
 	
 	/** Basically used for reset */
 	updateState(tile){
-		console.log('calling update state with tile', tile, 'hopefully a reset should appear')
-		this.currentState = this.getState(tile)
+		this.currentState = undefined
+		this.agent.setTile(undefined, tile)
 	}
 
 	debug() {
@@ -290,9 +314,20 @@ class QLearning {
 			goals : this.goals,
 			cliffs : this.cliffs,
 			iterations : this.iterations,
+			totalIterations : this.totalIterations,
+			settings : this.settings,
 			currentState : this.currentState
 		}
 		return debug
+	}
+}
+
+class TrainerSettings {
+	construct(){
+		this.gamma = 0.9
+		this.alpha = 0.1
+		this.maxIterationsBeforeReset = 1000
+		this.speed = 10 /** Lower is faster */
 	}
 }
 
@@ -334,13 +369,14 @@ function buildAgent(boardData) {
 	return a
 }
 
-function buildTrainer(agent, board){
-	return new QLearning(agent, board)
+function buildTrainer(agent, board, settings){
+	return new QLearning(agent, board, settings)
 }
 
 var board = buildBoard(4,12)
 var agent = buildAgent(board)
-var trainer = buildTrainer(agent, board)
+var trainerSettings = new TrainerSettings();
+var trainer = buildTrainer(agent, board, trainerSettings)
 var trainerLoopId
 
 var v = new Vue({
@@ -348,7 +384,8 @@ var v = new Vue({
 	data : {
 		boardData : board,
 		agentData : agent,
-		trainerData : trainer
+		trainerData : trainer,
+		trainerSettings : trainerSettings
 	},
 	methods: {
 		moveUp: function(){
@@ -370,7 +407,7 @@ var v = new Vue({
 			/** One fucking spin lock to rule them all */
 			trainerLoopId = setInterval(function(){
 				trainer.selectState()
-			}, 50)
+			}, trainerSettings.speed)
 		}, 
 		pauseTrainer : function(){
 			clearInterval(trainerLoopId)

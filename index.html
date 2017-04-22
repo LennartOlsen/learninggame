@@ -65,6 +65,32 @@
 				</div>
 			</div>
 			<div class="row mb-4">
+				<div class="col">
+				  <div class="form-group">
+						<label for="gamma">Gamma</label>
+						<input v-model="trainerSettings.gamma" type="text" class="form-control" placeholder="Enter gamma, do it with dots you must">
+					</div>
+				</div>
+				<div class="col">
+					<div class="form-group">
+						<label for="alpha">Alpha</label>
+						<input v-model="trainerSettings.alpha" type="text" class="form-control" placeholder="Enter alpha, do it with dots you must">
+					</div>
+				</div>
+				<div class="col">
+					<div class="form-group">
+						<label for="maxiterationsbeforereset">Max iterations before reset</label>
+						<input v-model="trainerSettings.maxIterationsBeforeReset" type="text" class="form-control" placeholder="Enter max iterations before reset you must">
+					</div>
+				</div>
+				<div class="col">
+					<div class="form-group">
+						<label for="speed">Speed, lower is more devastating</label>
+						<input v-model="trainerSettings.speed" type="text" class="form-control" placeholder="Enter speed in ms you must">
+					</div>
+				</div>
+			</div>
+			<div class="row mb-4">
 				<div class="col-12">
 					<button type="button" class="btn btn-default"
 							@click="selectNext">
