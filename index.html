@@ -43,7 +43,7 @@
 						v-bind:rows="rows">
 				</tiles>
 			</div>
-			<div class="row">
+			<div class="row mb-4">
 				<div class="col-12">
 					<button type="button" 
 							class="btn btn-default"
@@ -63,12 +63,25 @@
 						Move right
 					</button>
 				</div>
+			</div>
+			<div class="row mb-4">
 				<div class="col-12">
 					<button type="button" class="btn btn-default"
 							@click="selectNext">
 						Select Next
 					</button>
+					<button type="button" class="btn btn-danger"
+							@click="startTrainer">
+						Start the irreversible trainer of doom
+					</button>
+					<button type="button" class="btn btn-primary"
+							@click="pauseTrainer">
+						Pause the irreversible trainer of doom
+					</button>
 				</div>
+			</div>
+			<div class="row">
+				<pre><code>{{trainerData.debug()}}</code></pre>
 			</div>
 		</div>
 	</body>

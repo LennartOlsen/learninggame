@@ -12,7 +12,7 @@ Vue.component('agent', {
 })
 
 /** CONSTANTS */
-var alpha = 0.4;
+var alpha = 0.1;
 var gamma = 0.9;
 
 /** HELPERS */
@@ -49,13 +49,18 @@ class Agent {
 		this.name = name; this.board = board;
 	}
 	setTile(trainer, t){
-		if(t.type == 'cliff' && trainer != undefined){
-			t = this.board.getStartTile()
-			trainer.updateState(t)
-		}
-		if(t.type == 'goal' && trainer != undefined){
-			t = this.board.getStartTile()
-			trainer.updateState(t)
+		if(trainer != undefined){
+			if(t.type == 'cliff'){
+				t = this.board.getStartTile()
+				trainer.updateState(t)
+				trainer.cliffs += 1
+			}
+			if(t.type == 'goal'){
+				t = this.board.getStartTile()
+				trainer.updateState(t)
+				trainer.goals += 1
+			}
+			trainer.iterations += 1
 		}
 		this.tile = t
 	}
@@ -213,6 +218,9 @@ class QLearning {
 		this.constructStates(board.tiles)
 		this.currentState = this.getState(agent.tile)
 		this.previousState = null;
+		this.iterations = 0
+		this.goals = 0
+		this.cliffs = 0
 	}
 
 	constructStates(tiles){
@@ -262,6 +270,7 @@ class QLearning {
 		 this.currentState = statePlusOne
 		
 	}
+
 	getState(tile){
 		for(var i = 0; i < this.states.length; i++){
 			if(this.states[i].tile == tile){
@@ -272,7 +281,18 @@ class QLearning {
 	
 	/** Basically used for reset */
 	updateState(tile){
+		console.log('calling update state with tile', tile, 'hopefully a reset should appear')
 		this.currentState = this.getState(tile)
+	}
+
+	debug() {
+		var debug = {
+			goals : this.goals,
+			cliffs : this.cliffs,
+			iterations : this.iterations,
+			currentState : this.currentState
+		}
+		return debug
 	}
 }
 
@@ -321,6 +341,7 @@ function buildTrainer(agent, board){
 var board = buildBoard(4,12)
 var agent = buildAgent(board)
 var trainer = buildTrainer(agent, board)
+var trainerLoopId
 
 var v = new Vue({
 	el:"#board",
@@ -345,5 +366,14 @@ var v = new Vue({
 		selectNext: function(){
 			trainer.selectState();
 		},
+		startTrainer: function(){
+			/** One fucking spin lock to rule them all */
+			trainerLoopId = setInterval(function(){
+				trainer.selectState()
+			}, 50)
+		}, 
+		pauseTrainer : function(){
+			clearInterval(trainerLoopId)
+		}
 	}
 })
