@@ -38,8 +38,8 @@ function getRandom(){
   var num=Math.random();
   if(num < 0.3) return 1;  //probability 0.3
   else if(num < 0.6) return 2; // probability 0.3
-  else if(num < 0.9) return 3; //probability 0.3
-  else return 4;  //probability 0.1
+  else if(num < 0.95) return 3; //probability 0.3
+  else return 4;  //probability 0.05
 }
 
 /**
@@ -70,7 +70,11 @@ class Agent {
 				return;
 			}
 		}
+		if(this.tile != undefined){
+			this.tile.setOccupied(); //Old Tile
+		}
 		this.tile = t
+		this.tile.setOccupied(); //New Tile
 	}
 	getTile(){
 		return this.tile;
@@ -102,6 +106,7 @@ class Agent {
 		}
 	}
 	reset(){
+		trainer.totalEpisodes += 1
 		trainer.iterations = 0
 		var t = this.board.getStartTile()
 		trainer.updateState(t)
@@ -156,13 +161,27 @@ class Board {
 
 class Tile {
 	constructor(type, reward, row, col){
-		this.type = type; this.reward = reward; this.col = col; this.row = row;
+		this.type = type; this.reward = reward; this.col = col; this.row = row; this.numberOfVisits = 0; this.occupied = false;
 	}
 	setReward(r){this.reward = r}
 	getReward(){return this.reward}
 
 	setType(t){this.type = t}
 	getType(){return this.type}
+
+	getStyle(){
+		var style = this.type + " ";
+		style += this.occupied ? 'occupied' : '' 
+		return style;
+	}
+
+	setOccupied(){
+		if(this.occupied == undefined){
+			this.occupied = true
+		} else {
+			this.occupied = !this.occupied
+		}
+	}
 }
 
 class State {
@@ -242,7 +261,9 @@ class QLearning {
 		this.goals = 0
 		this.cliffs = 0
 		this.totalIterations = 0
+		this.totalEpisodes = 0
 		this.settings = settings
+		this.actionPlusOne = null;
 	}
 
 	constructStates(tiles){
@@ -256,7 +277,7 @@ class QLearning {
 		}
 	}
 
-	selectState(){
+	selectQNext(){
 		this.currentState = this.getState(agent.tile)
 		/**
 		 * From this state we select an action
@@ -295,6 +316,56 @@ class QLearning {
 		
 	}
 
+	selectSarsaNext(){
+		this.currentState = this.getState(agent.tile)
+		/**
+		 * From this state we select an action
+		 */
+		if( this.actionPlusOne == null){
+			if(getRandom() != 4){
+				var actionToDo = this.currentState.getBestAction();
+			} else {
+				var actionToDo = this.currentState.getRandomAction();
+			}
+		} else {
+			var actionToDo = this.actionPlusOne
+		}
+		
+		/**
+		 * What state does this action lead to
+		 */
+		var statePlusOne = this.getState(actionToDo.tile)
+
+		/** 
+		 * Alpha = learning rate (ex = 0.5)
+		 * T = Time (step)	
+		 * gamma = discount factor (ex = 1)
+		 * a* All possible actions
+		 */
+		/** Q(state(T), action(T)) += alpha[reward(T+1) + gamma * Q(state(T+1), action(T+1)) - Q(state(T), action(T)) ] */
+		
+		if(getRandom() != 4){
+			this.actionPlusOne = statePlusOne.getBestAction();
+		} else {
+			this.actionPlusOne = statePlusOne.getRandomAction();
+		}
+
+		var qvalue = this.settings.alpha * ( statePlusOne.reward + this.settings.gamma * this.actionPlusOne.qvalue - actionToDo.qvalue )
+		
+		/**
+		 * Update the qvalue of the current action
+		 */
+		actionToDo.updateQvalue(qvalue)
+
+		/**
+		 * Move agent to next state
+		 */
+		 this.agent.setTile(this, actionToDo.tile)
+		 this.previousState = this.currentState
+		 this.currentState = statePlusOne
+		
+	}
+
 	getState(tile){
 		for(var i = 0; i < this.states.length; i++){
 			if(this.states[i].tile == tile){
@@ -306,17 +377,19 @@ class QLearning {
 	/** Basically used for reset */
 	updateState(tile){
 		this.currentState = undefined
+		this.actionPlusOne = undefined
 		this.agent.setTile(undefined, tile)
 	}
 
 	debug() {
 		var debug = {
+			totalEpisodes : this.totalEpisodes,
+			averagePathLegnth : this.totalIterations / this.totalEpisodes,
 			goals : this.goals,
 			cliffs : this.cliffs,
 			iterations : this.iterations,
 			totalIterations : this.totalIterations,
 			settings : this.settings,
-			currentState : this.currentState
 		}
 		return debug
 	}
@@ -401,12 +474,22 @@ var v = new Vue({
 			agent.moveRight();
 		},
 		selectNext: function(){
-			trainer.selectState();
+			trainer.selectQNext();
 		},
-		startTrainer: function(){
+		startQTrainer: function(){
 			/** One fucking spin lock to rule them all */
 			trainerLoopId = setInterval(function(){
-				trainer.selectState()
+				if(trainer.totalEpisodes < 1000){
+					trainer.selectQNext()
+				}
+			}, trainerSettings.speed)
+		}, 
+		startSarsaTrainer: function(){
+			/** One fucking spin lock to rule them all */
+			trainerLoopId = setInterval(function(){
+				if(trainer.totalEpisodes < 1000){
+					trainer.selectSarsaNext()
+				}
 			}, trainerSettings.speed)
 		}, 
 		pauseTrainer : function(){

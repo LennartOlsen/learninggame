@@ -1,6 +1,8 @@
 <script type="text/x-template" id="tile-template">
 	<div class="col-1 tile" 
-			v-bind:class="model.type">
+			v-bind:class="model.getStyle()">
+		<div class="overlay">
+		</div>
 		<h6><small>{{model.reward}}</small></h6>
 	</div>
 </script>
@@ -68,25 +70,25 @@
 				<div class="col">
 				  <div class="form-group">
 						<label for="gamma">Gamma</label>
-						<input v-model="trainerSettings.gamma" type="text" class="form-control" placeholder="Enter gamma, do it with dots you must">
+						<input v-model="trainerSettings.gamma" type="text" class="form-control" placeholder="Enter gamma, do it with dots you must" value="0.9">
 					</div>
 				</div>
 				<div class="col">
 					<div class="form-group">
 						<label for="alpha">Alpha</label>
-						<input v-model="trainerSettings.alpha" type="text" class="form-control" placeholder="Enter alpha, do it with dots you must">
+						<input v-model="trainerSettings.alpha" type="text" class="form-control" placeholder="Enter alpha, do it with dots you must" value="0.1">
 					</div>
 				</div>
 				<div class="col">
 					<div class="form-group">
 						<label for="maxiterationsbeforereset">Max iterations before reset</label>
-						<input v-model="trainerSettings.maxIterationsBeforeReset" type="text" class="form-control" placeholder="Enter max iterations before reset you must">
+						<input v-model="trainerSettings.maxIterationsBeforeReset" type="text" class="form-control" placeholder="Enter max iterations before reset you must" value="100">
 					</div>
 				</div>
 				<div class="col">
 					<div class="form-group">
 						<label for="speed">Speed, lower is more devastating</label>
-						<input v-model="trainerSettings.speed" type="text" class="form-control" placeholder="Enter speed in ms you must">
+						<input v-model="trainerSettings.speed" type="text" class="form-control" placeholder="Enter speed in ms you must" value="10">
 					</div>
 				</div>
 			</div>
@@ -97,8 +99,12 @@
 						Select Next
 					</button>
 					<button type="button" class="btn btn-danger"
-							@click="startTrainer">
-						Start the irreversible trainer of doom
+							@click="startSarsaTrainer">
+						Start the irreversible sarsa-trainer of doom
+					</button>
+					<button type="button" class="btn btn-danger"
+							@click="startQTrainer">
+						Start the irreversible q-trainer of doom
 					</button>
 					<button type="button" class="btn btn-primary"
 							@click="pauseTrainer">
